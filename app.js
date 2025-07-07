@@ -27,8 +27,21 @@ document.addEventListener('DOMContentLoaded', () => {
         generateBtn.textContent = 'Membuat Skrip...';
 
         try {
-            const response = await generateScript(topic, audienceAge);
-            const script = response.choices[0].message.content;
+            const response = await fetch('/api/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ topic, audienceAge })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.details || errorData.error || 'Unknown error');
+            }
+
+            const data = await response.json();
+            const script = data.choices[0].message.content;
             scriptOutput.textContent = script.trim();
         } catch (error) {
             console.error('Error:', error);
@@ -69,39 +82,4 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     });
-
-    async function generateScript(topic, audienceAge) {
-        const apiKey = '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';
-        const apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
-
-        const prompt = `
-Persona: Kamu adalah seorang copywriter spesialis storytelling video pendek.
-Action: Buatkan aku skrip storytelling berdurasi 60 detik tentang "${topic}", dengan gaya emosional dan menyentuh.
-Step: Mulai dengan hook misterius/personal, bangun konflik singkat, beri twist atau insight mendalam, dan tutup dengan pertanyaan reflektif atau CTA.
-Context: Audience-ku adalah usia ${audienceAge} yang suka cerita emosional dan relatable, video ditujukan untuk TikTok, Reels atau YouTube Shorts.
-Gunakan sudut pandang orang pertama.
-Bahasa: Indonesia.
-`;
-
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: 'deepseek/deepseek-chat-v3-0324:free',
-                messages: [
-                    { role: 'user', content: prompt }
-                ]
-            })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorData.error.message}`);
-        }
-
-        return response.json();
-    }
 });
